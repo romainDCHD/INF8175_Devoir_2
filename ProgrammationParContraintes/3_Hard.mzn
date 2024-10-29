@@ -1,5 +1,5 @@
-% NOM_ETUDIANT_1 (MATRICULE_1)
-% NOM_ETUDIANT_2 (MATRICULE_2)
+% DUCHADEAU Romain (2311547)
+% LOPEZ Ines (2404168)
 
 include "globals.mzn"; 
 
@@ -49,6 +49,39 @@ var int: temps_trajet;
 % Partie étudiant
 %-----------------------------------------------------------------------------%
 
+% Initialisation du temps d'arrivée dans la première ville du chemin
+constraint cumul_temps[1] = fenetre_arrivee[chemin_tournee[1], 1];
+
+% Calcul du temps d'arrivée dans chaque ville suivant le chemin
+constraint forall(i in 2..n)(
+  cumul_temps[i] = cumul_temps[i-1] + distance[chemin_tournee[i-1], chemin_tournee[i]] + temps_attente[i]
+);
+
+% Calcul du circuit de la tournée en faisant en sorte que le dernier retour boucle sur le départ
+constraint forall(i in 1..n)(
+  circuit_tournee[i] = chemin_tournee[i+1]
+);
+constraint circuit_tournee[1] = chemin_tournee[n];
+
+% Contrainte : chaque ville est visitée une seule fois
+constraint alldifferent(chemin_tournee);
+
+% Contrainte pour respecter la fenêtre de temps d'arrivée dans chaque ville
+constraint forall(i in 2..n)(
+  cumul_temps[i] >= fenetre_arrivee[chemin_tournee[i], 1] /\
+  cumul_temps[i] + temps_attente[i] <= fenetre_arrivee[chemin_tournee[i], 2]
+);
+
+% Calcul du temps d'attente pour chaque ville si on arrive avant l'ouverture de la fenêtre
+constraint forall(i in 2..n)(
+  temps_attente[i] = max(0, fenetre_arrivee[chemin_tournee[i], 1] - (cumul_temps[i-1] + distance[chemin_tournee[i-1], chemin_tournee[i]]))
+);
+
+% Calcul du temps de trajet total, en incluant le retour à la première ville
+constraint temps_trajet = cumul_temps[n] ;
+
+% Objectif : Minimiser le temps de trajet total
+solve minimize temps_trajet;
 
 %-----------------------------------------------------------------------------%
 
