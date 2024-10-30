@@ -2,7 +2,7 @@ from schedule import Schedule
 import math
 import random
 
-def solve(schedule: Schedule, temp_ = 100, alpha = 0.99):
+def solve(schedule: Schedule, temp_ = 500, alpha = 0.95):
     """
     Your solution of the problem
     :param schedule: object describing the input
@@ -19,6 +19,30 @@ def solve(schedule: Schedule, temp_ = 100, alpha = 0.99):
             solution[c] = assignation
             time_slot_idx += 1
 
+        return solution
+    
+    # Fonction initiale avancée où on affecte les cours avec le plus de contraintes en premier
+    def advanced_initial_solution(schedule):
+        solution = {}
+        # Récupérer les cours et les trier par le nombre de conflits
+        courses_sorted = sorted(schedule.course_list, key=lambda c: len(schedule.get_node_conflicts(c)), reverse=True)
+        
+        # Affecter les cours en fonction des conflits
+        for course in courses_sorted:
+            assigned = False
+            for slot in range(len(schedule.course_list)):
+                # Vérifier si l'affectation est valide
+                conflict = False
+                for conflict_course in schedule.get_node_conflicts(course):
+                    if conflict_course in solution and solution[conflict_course] == slot:
+                        conflict = True
+                        break
+
+                if not conflict:
+                    solution[course] = slot
+                    assigned = True
+                    break
+        
         return solution
     
     # Fonction pour chercher un meilleur voisin dans le voisinage actuel - Hill Climbing
@@ -54,13 +78,18 @@ def solve(schedule: Schedule, temp_ = 100, alpha = 0.99):
         # Choisir un nouveau créneau aléatoire qui ne cause pas de conflit
         available_slots = [slot for slot in range(len(schedule.course_list)) if slot not in conflicting_slots]
         
+        #On choisit un nouveau créneau aléatoirement parmis ceux disponibles
         if available_slots:
             new_slot = random.choice(available_slots)
             neighbor[course] = new_slot
         return neighbor 
 
-    # Initialiser la solution avec la méthode naïve
-    current_solution = solution_naive(schedule)
+#Implémentation du solveur
+
+    # Initialiser la solution
+    
+    # current_solution = solution_naive(schedule)
+    current_solution = advanced_initial_solution(schedule)
     current_cost = schedule.get_n_creneaux(current_solution)
     best_solution = current_solution.copy()
     best_cost = current_cost
@@ -92,6 +121,8 @@ def solve(schedule: Schedule, temp_ = 100, alpha = 0.99):
         temperature *= alpha
         
     return best_solution
+
+#OLD VERSION
     # # Boucle de recherche locale
     # improved = True
     # while improved:
