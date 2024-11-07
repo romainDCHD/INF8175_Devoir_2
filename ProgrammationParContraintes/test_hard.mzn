@@ -50,24 +50,24 @@ var int: temps_trajet;
 %-----------------------------------------------------------------------------%
 
 % Initialisation du temps d'arrivée dans la première ville du chemin
-constraint cumul_temps[1] = distance[chemin_tournee[n], chemin_tournee[1]] + temps_attente[chemin_tournee[1]]; 
+constraint cumul_temps[1] = max (distance[chemin_tournee[n], chemin_tournee[1]], fenetre_arrivee[chemin_tournee[1], 1]); 
 
-% Calcul du temps après attente dans chaque ville suivant le chemin
-constraint forall(i in 2..n)(
-  cumul_temps[i] = cumul_temps[i-1] + temps_attente[chemin_tournee[i]] + distance[chemin_tournee[i-1], chemin_tournee[i]] 
-);
+% Calcul du temps d'arrivée dans chaque ville suivant le chemin
+constraint forall(i in 2..n-1)(
+  cumul_temps[i] = max (fenetre_arrivee[chemin_tournee[1], 1], cumul_temps[i-1] + distance[chemin_tournee[i-1], chemin_tournee[i]] )
+  );
 
 % Calcul du circuit de la tournée en faisant en sorte que le dernier retour boucle sur le départ
 constraint forall(i in 1..n-1)(
-  circuit_tournee[chemin_tournee[i]] = chemin_tournee[i+1]
+  circuit_tournee[i] = chemin_tournee[i+1]
 );
-constraint circuit_tournee[chemin_tournee[n]] = chemin_tournee[1] ;
+constraint circuit_tournee[n] = circuit_tournee[1] ;
 
-% Contrainte 1: chaque ville est visitée une seule fois
+% Contrainte : chaque ville est visitée une seule fois
 constraint alldifferent(chemin_tournee);
 constraint chemin_tournee[n] = 1 ;
 
-% Contrainte 2: Respecter la fenêtre de temps d'arrivée dans chaque ville
+% Contrainte pour respecter la fenêtre de temps d'arrivée dans chaque ville
 constraint forall(i in 2..n)(
   cumul_temps[i] >= fenetre_arrivee[chemin_tournee[i], 1] /\
   cumul_temps[i] <= fenetre_arrivee[chemin_tournee[i], 2]
@@ -76,10 +76,9 @@ constraint forall(i in 2..n)(
 % Calcul du temps de trajet total, en incluant le retour à la première ville
 constraint temps_trajet = cumul_temps[n] ;
 
-% Solveur : Minimiser le temps de trajet total
-% Ajout d'une heuristique pour accélérer le calcul avec chuffed (voir : https://docs.minizinc.dev/en/stable/solvers.html#chuffed pour plus d'information)
-solve :: int_search(chemin_tournee, first_fail, indomain_min) minimize temps_trajet;
-  
+% Objectif : Minimiser le temps de trajet total
+solve minimize temps_trajet;
+
 %-----------------------------------------------------------------------------%
 
 output [
@@ -90,5 +89,3 @@ output [
   "Temps d'attente total                  : \(total_temps_attentes)\n",
   "Temps de trajet total                  : \(temps_trajet)\n",
 ];
-
-

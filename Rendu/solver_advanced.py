@@ -1,3 +1,8 @@
+##############################
+# DUCHADEAU Romain (2311547)
+# LOPEZ Ines (2404168)
+##############################
+
 from schedule import Schedule
 import math
 import random
